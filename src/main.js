@@ -111,8 +111,12 @@ async function handleStart() {
         const uiConfig = themeLoader.getUIConfig();
         CONFIG.BPM = meta.bpm || 120;
         CONFIG.NUM_SLOTS = uiConfig.slotCount || 7;
-        if (uiConfig.iconSize) {
+        // Prefer CSS clamp sizing for iPad fit; only override if theme asks smaller
+        if (uiConfig.iconSize && uiConfig.iconSize < 52) {
             document.documentElement.style.setProperty('--icon-size', `${uiConfig.iconSize}px`);
+        }
+        if (uiConfig.slotSize && uiConfig.slotSize < 80) {
+            document.documentElement.style.setProperty('--slot-size', `${uiConfig.slotSize}px`);
         }
         
         // Set transport loop end based on theme

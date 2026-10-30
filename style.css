@@ -22,10 +22,16 @@
   --color-bass: #ff88ff;
   --color-cursed: #660000;
 
-  /* Sizing */
-  --slot-size: 100px;
-  --icon-size: 60px;
-  --gap: 20px;
+  /* Sizing — scale down on short viewports (iPad Safari chrome) */
+  --slot-size: clamp(56px, 12vh, 100px);
+  --icon-size: clamp(40px, 7.5vh, 56px);
+  --gap: clamp(8px, 1.6vh, 20px);
+  --app-pad: clamp(6px, 1.2vh, 16px);
+}
+
+html {
+  height: 100%;
+  height: 100dvh;
 }
 
 body {
@@ -35,8 +41,13 @@ body {
     var(--bg-primary) 0%,
     var(--bg-secondary) 100%
   );
-  min-height: 100vh;
+  height: 100%;
+  height: 100dvh;
+  overflow: hidden;
   color: var(--text);
+  /* iOS: avoid rubber-band scroll stealing the drag */
+  overscroll-behavior: none;
+  -webkit-tap-highlight-color: transparent;
 }
 
 /* Start Overlay - Required to unlock AudioContext */
@@ -103,14 +114,21 @@ body {
   }
 }
 
-/* App Container */
+/* App Container — lock to viewport so palette always fits */
 .app {
   display: flex;
   flex-direction: column;
-  min-height: 100vh;
+  height: 100%;
+  max-height: 100dvh;
   max-width: 1200px;
   margin: 0 auto;
-  padding: var(--gap);
+  padding: var(--app-pad);
+  padding-top: max(var(--app-pad), env(safe-area-inset-top));
+  padding-bottom: max(var(--app-pad), env(safe-area-inset-bottom));
+  padding-left: max(var(--app-pad), env(safe-area-inset-left));
+  padding-right: max(var(--app-pad), env(safe-area-inset-right));
+  overflow: hidden;
+  min-height: 0;
 }
 
 /* Header */
@@ -118,12 +136,14 @@ body {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: var(--gap);
+  flex-shrink: 0;
+  padding: calc(var(--app-pad) * 0.5) var(--app-pad);
   border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  gap: 8px;
 }
 
 .header h1 {
-  font-size: 1.5em;
+  font-size: clamp(1em, 2.8vh, 1.5em);
   color: var(--accent);
   text-transform: none;
   letter-spacing: 1px;
@@ -137,20 +157,22 @@ body {
 
 .bpm-display {
   background: rgba(0, 0, 0, 0.3);
-  padding: 8px 16px;
+  padding: 6px 12px;
   border-radius: 8px;
   font-family: "Courier New", monospace;
-  font-size: 0.9em;
+  font-size: clamp(0.7em, 1.8vh, 0.9em);
   color: var(--accent);
+  white-space: nowrap;
 }
 
 /* Buttons */
 .btn {
-  padding: 10px 20px;
+  padding: 8px 14px;
   border: none;
   border-radius: 8px;
   cursor: pointer;
   font-weight: bold;
+  font-size: clamp(0.75em, 1.8vh, 1em);
   transition: all 0.2s ease;
 }
 
@@ -164,13 +186,15 @@ body {
   box-shadow: 0 5px 20px rgba(255, 65, 108, 0.4);
 }
 
-/* Stage - Character Slots */
+/* Stage - Character Slots (shrinks; palette stays pinned) */
 .stage {
-  flex: 1;
+  flex: 1 1 auto;
+  min-height: 0;
   display: flex;
   align-items: center;
   justify-content: center;
   padding: var(--gap);
+  overflow: hidden;
 }
 
 .slots {
@@ -178,6 +202,8 @@ body {
   gap: var(--gap);
   flex-wrap: wrap;
   justify-content: center;
+  align-items: center;
+  max-width: 100%;
 }
 
 .slot {
@@ -191,8 +217,9 @@ body {
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 2.5em;
+  font-size: calc(var(--slot-size) * 0.42);
   position: relative;
+  flex-shrink: 0;
 }
 
 .slot:hover {
@@ -239,11 +266,19 @@ body {
 
 .slot-label {
   position: absolute;
-  bottom: -25px;
-  font-size: 0.4em;
+  bottom: 6%;
+  left: 50%;
+  transform: translateX(-50%);
+  font-size: 0.28em;
   color: var(--text-muted);
   text-align: center;
-  width: 100%;
+  width: 90%;
+  line-height: 1.1;
+  pointer-events: none;
+  /* Keep labels inside the circle so they don't add height */
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 /* Sound type colors */
@@ -285,19 +320,23 @@ body {
   opacity: 1;
 }
 
-/* Palette - Sound Icons (Phase 1: just visual, Phase 2: draggable) */
+/* Palette - always visible at bottom of the viewport */
 .palette {
-  padding: var(--gap);
+  flex-shrink: 0;
+  padding: calc(var(--gap) * 0.75);
   background: rgba(0, 0, 0, 0.3);
-  border-radius: 16px;
-  margin-top: auto;
+  border-radius: 12px;
+  margin-top: 0;
+  max-height: 42dvh;
+  overflow: hidden;
 }
 
 .sound-icons {
   display: flex;
-  gap: 15px;
+  gap: clamp(6px, 1.2vh, 12px);
   flex-wrap: wrap;
   justify-content: center;
+  align-content: center;
 }
 
 .sound-icon {
@@ -349,16 +388,24 @@ body {
   background: var(--color-cursed);
 }
 
-/* Phase indicator */
+/* Phase indicator — tucked so it never covers the palette */
 .phase-badge {
   position: fixed;
-  bottom: 10px;
-  right: 10px;
-  background: rgba(0, 0, 0, 0.5);
-  padding: 5px 10px;
+  top: 8px;
+  right: 8px;
+  background: rgba(0, 0, 0, 0.45);
+  padding: 4px 8px;
   border-radius: 4px;
-  font-size: 0.7em;
+  font-size: 0.65em;
   color: var(--text-muted);
+  z-index: 5;
+  pointer-events: none;
+}
+
+@media (max-height: 700px) {
+  .phase-badge {
+    display: none;
+  }
 }
 
 /* ========================================
@@ -396,22 +443,30 @@ body {
   line-height: 1;
 }
 
-/* Slot controls (mute/solo buttons) */
+/* Slot controls inside the circle (no extra height below slots) */
 .slot-controls {
   position: absolute;
-  bottom: -35px;
+  top: 4px;
   left: 50%;
   transform: translateX(-50%);
   display: flex;
-  gap: 5px;
+  gap: 4px;
   opacity: 0;
   transition: opacity 0.2s ease;
+  z-index: 2;
 }
 
 .slot:not(.empty):hover .slot-controls,
+.slot:not(.empty):focus-within .slot-controls,
 .slot.muted .slot-controls,
 .slot.soloed .slot-controls {
   opacity: 1;
+}
+
+@media (hover: none) {
+  .slot:not(.empty) .slot-controls {
+    opacity: 0.85;
+  }
 }
 
 .slot-btn {
@@ -539,9 +594,9 @@ body.is-dragging .slot.empty {
   border: 2px dashed #ff4444;
 }
 
-/* Slot label positioning adjustment for controls */
 .slot:not(.empty) .slot-label {
-  bottom: -55px;
+  bottom: 6%;
+  color: rgba(255, 255, 255, 0.75);
 }
 
 /* ========================================
