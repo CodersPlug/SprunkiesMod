@@ -1,0 +1,977 @@
+/* wrenchbox - Phase 2 Styles (Drag-Drop, Mute/Solo) */
+
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+:root {
+  /* Theme colors - easy to swap later */
+  --bg-primary: #1a1a2e;
+  --bg-secondary: #16213e;
+  --accent: #00ffff;
+  --text: #ffffff;
+  --text-muted: #888888;
+
+  /* Category colors */
+  --color-beats: #ff4444;
+  --color-effects: #4488ff;
+  --color-melodies: #44ff88;
+  --color-voices: #ffdd44;
+  --color-bass: #ff88ff;
+  --color-cursed: #660000;
+
+  /* Sizing */
+  --slot-size: 100px;
+  --icon-size: 60px;
+  --gap: 20px;
+}
+
+body {
+  font-family: "Segoe UI", system-ui, sans-serif;
+  background: linear-gradient(
+    135deg,
+    var(--bg-primary) 0%,
+    var(--bg-secondary) 100%
+  );
+  min-height: 100vh;
+  color: var(--text);
+}
+
+/* Start Overlay - Required to unlock AudioContext */
+.start-overlay {
+  position: fixed;
+  inset: 0;
+  background: linear-gradient(
+    135deg,
+    var(--bg-primary) 0%,
+    var(--bg-secondary) 100%
+  );
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  cursor: pointer;
+}
+
+.start-content {
+  text-align: center;
+  animation: fadeIn 0.5s ease;
+}
+
+.start-content h1 {
+  font-size: 3em;
+  color: var(--accent);
+  text-transform: none;
+  letter-spacing: 2px;
+  margin-bottom: 20px;
+}
+
+.start-content p {
+  color: var(--text-muted);
+  font-size: 1.2em;
+  margin-bottom: 30px;
+}
+
+.start-icon {
+  font-size: 4em;
+  color: var(--accent);
+  animation: pulse-start 1.5s infinite;
+}
+
+@keyframes pulse-start {
+  0%,
+  100% {
+    transform: scale(1);
+    opacity: 1;
+  }
+  50% {
+    transform: scale(1.1);
+    opacity: 0.8;
+  }
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* App Container */
+.app {
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: var(--gap);
+}
+
+/* Header */
+.header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: var(--gap);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.header h1 {
+  font-size: 1.5em;
+  color: var(--accent);
+  text-transform: none;
+  letter-spacing: 1px;
+}
+
+.controls {
+  display: flex;
+  align-items: center;
+  gap: 15px;
+}
+
+.bpm-display {
+  background: rgba(0, 0, 0, 0.3);
+  padding: 8px 16px;
+  border-radius: 8px;
+  font-family: "Courier New", monospace;
+  font-size: 0.9em;
+  color: var(--accent);
+}
+
+/* Buttons */
+.btn {
+  padding: 10px 20px;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  font-weight: bold;
+  transition: all 0.2s ease;
+}
+
+.btn-danger {
+  background: linear-gradient(135deg, #ff416c 0%, #ff4b2b 100%);
+  color: white;
+}
+
+.btn-danger:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 5px 20px rgba(255, 65, 108, 0.4);
+}
+
+/* Stage - Character Slots */
+.stage {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: var(--gap);
+}
+
+.slots {
+  display: flex;
+  gap: var(--gap);
+  flex-wrap: wrap;
+  justify-content: center;
+}
+
+.slot {
+  width: var(--slot-size);
+  height: var(--slot-size);
+  border-radius: 50%;
+  border: 3px solid #333;
+  background: linear-gradient(135deg, #2a2a3e 0%, #3a3a5e 100%);
+  cursor: pointer;
+  transition: all 0.3s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 2.5em;
+  position: relative;
+}
+
+.slot:hover {
+  transform: scale(1.05);
+  border-color: #555;
+}
+
+.slot.active {
+  border-color: var(--accent);
+  box-shadow: 0 0 30px rgba(0, 255, 255, 0.5);
+  animation: pulse 1s infinite;
+}
+
+.slot.active::after {
+  content: "";
+  position: absolute;
+  inset: -5px;
+  border-radius: 50%;
+  border: 2px solid var(--accent);
+  opacity: 0.5;
+  animation: ripple 1s infinite;
+}
+
+@keyframes pulse {
+  0%,
+  100% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.03);
+  }
+}
+
+@keyframes ripple {
+  0% {
+    transform: scale(1);
+    opacity: 0.5;
+  }
+  100% {
+    transform: scale(1.2);
+    opacity: 0;
+  }
+}
+
+.slot-label {
+  position: absolute;
+  bottom: -25px;
+  font-size: 0.4em;
+  color: var(--text-muted);
+  text-align: center;
+  width: 100%;
+}
+
+/* Sound type colors */
+.slot[data-type="beats"].active {
+  border-color: var(--color-beats);
+  box-shadow: 0 0 30px rgba(255, 68, 68, 0.5);
+}
+.slot[data-type="effects"].active {
+  border-color: var(--color-effects);
+  box-shadow: 0 0 30px rgba(68, 136, 255, 0.5);
+}
+.slot[data-type="melodies"].active {
+  border-color: var(--color-melodies);
+  box-shadow: 0 0 30px rgba(68, 255, 136, 0.5);
+}
+.slot[data-type="voices"].active {
+  border-color: var(--color-voices);
+  box-shadow: 0 0 30px rgba(255, 221, 68, 0.5);
+}
+.slot[data-type="bass"].active {
+  border-color: var(--color-bass);
+  box-shadow: 0 0 30px rgba(255, 136, 255, 0.5);
+}
+
+/* Beat indicator on active slots */
+.slot.active .beat-indicator {
+  position: absolute;
+  top: 5px;
+  right: 5px;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: white;
+  opacity: 0;
+  transition: opacity 0.05s;
+}
+
+.slot.active .beat-indicator.flash {
+  opacity: 1;
+}
+
+/* Palette - Sound Icons (Phase 1: just visual, Phase 2: draggable) */
+.palette {
+  padding: var(--gap);
+  background: rgba(0, 0, 0, 0.3);
+  border-radius: 16px;
+  margin-top: auto;
+}
+
+.sound-icons {
+  display: flex;
+  gap: 15px;
+  flex-wrap: wrap;
+  justify-content: center;
+}
+
+.sound-icon {
+  width: var(--icon-size);
+  height: var(--icon-size);
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.8em;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  border: 2px solid transparent;
+}
+
+.sound-icon:hover {
+  transform: scale(1.1);
+  border-color: rgba(255, 255, 255, 0.3);
+}
+
+.sound-icon.used {
+  opacity: 0.35;
+  filter: grayscale(0.6);
+  cursor: not-allowed;
+  transform: none;
+  pointer-events: none;
+}
+
+.sound-icon[data-type="beats"] {
+  background: var(--color-beats);
+}
+.sound-icon[data-type="effects"] {
+  background: var(--color-effects);
+}
+.sound-icon[data-type="melodies"] {
+  background: var(--color-melodies);
+}
+.sound-icon[data-type="voices"] {
+  background: var(--color-voices);
+}
+.sound-icon[data-type="bass"] {
+  background: var(--color-bass);
+}
+.sound-icon[data-type="cursed"] {
+  background: var(--color-cursed);
+}
+
+/* Phase indicator */
+.phase-badge {
+  position: fixed;
+  bottom: 10px;
+  right: 10px;
+  background: rgba(0, 0, 0, 0.5);
+  padding: 5px 10px;
+  border-radius: 4px;
+  font-size: 0.7em;
+  color: var(--text-muted);
+}
+
+/* ========================================
+   Phase 2: Drag-Drop & Mute/Solo Styles
+   ======================================== */
+
+/* Empty slot state */
+.slot.empty {
+  border-style: dashed;
+  border-color: #444;
+  background: rgba(30, 30, 50, 0.5);
+}
+
+.slot.empty:hover {
+  border-color: var(--accent);
+  background: rgba(0, 255, 255, 0.1);
+}
+
+.slot.empty .slot-icon {
+  opacity: 0.3;
+  font-size: 0.8em;
+}
+
+/* Slot content wrapper */
+.slot-content {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  height: 100%;
+}
+
+.slot-icon {
+  font-size: 1em;
+  line-height: 1;
+}
+
+/* Slot controls (mute/solo buttons) */
+.slot-controls {
+  position: absolute;
+  bottom: -35px;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  gap: 5px;
+  opacity: 0;
+  transition: opacity 0.2s ease;
+}
+
+.slot:not(.empty):hover .slot-controls,
+.slot.muted .slot-controls,
+.slot.soloed .slot-controls {
+  opacity: 1;
+}
+
+.slot-btn {
+  width: 24px;
+  height: 24px;
+  border-radius: 4px;
+  border: none;
+  font-size: 0.6em;
+  font-weight: bold;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  background: rgba(50, 50, 70, 0.9);
+  color: var(--text-muted);
+}
+
+.slot-btn:hover {
+  background: rgba(70, 70, 100, 1);
+  color: var(--text);
+}
+
+/* Mute button active state */
+.slot.muted .mute-btn {
+  background: #ff4444;
+  color: white;
+}
+
+/* Solo button active state */
+.slot.soloed .solo-btn {
+  background: #ffdd44;
+  color: #222;
+}
+
+/* Muted slot visual */
+.slot.muted {
+  opacity: 0.5;
+}
+
+.slot.muted::after {
+  display: none;
+}
+
+/* Soloed slot visual - brighter glow */
+.slot.soloed {
+  box-shadow: 0 0 40px rgba(255, 221, 68, 0.7) !important;
+}
+
+/* Drag states */
+.sound-icon.dragging {
+  opacity: 0.5;
+  transform: scale(0.9);
+}
+
+.sound-icon[draggable="true"] {
+  cursor: grab;
+}
+
+.sound-icon[draggable="true"]:active {
+  cursor: grabbing;
+}
+
+.slot.dragging {
+  opacity: 0.5;
+}
+
+.slot.drag-over {
+  border-color: var(--accent) !important;
+  border-style: solid !important;
+  background: rgba(0, 255, 255, 0.2) !important;
+  transform: scale(1.1);
+}
+
+/* Body state during drag */
+body.is-dragging .slot.empty {
+  border-color: var(--accent);
+  animation: pulse-drop 0.8s infinite;
+}
+
+@keyframes pulse-drop {
+  0%,
+  100% {
+    border-color: #444;
+  }
+  50% {
+    border-color: var(--accent);
+  }
+}
+
+/* Remove zone (palette when dragging from slot) */
+.palette.remove-zone-active {
+  background: rgba(255, 68, 68, 0.3);
+  border: 2px dashed #ff4444;
+}
+
+/* Slot label positioning adjustment for controls */
+.slot:not(.empty) .slot-label {
+  bottom: -55px;
+}
+
+/* Draggable slots */
+.slot[draggable="true"] {
+  cursor: grab;
+}
+
+.slot[draggable="true"]:active {
+  cursor: grabbing;
+}
+
+/* ========================================
+   Phase 5: Bonus Overlay Styles
+   ======================================== */
+
+.bonus-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.8);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 2000;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.3s ease;
+}
+
+.bonus-overlay.active {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+/* Bonus video container */
+.bonus-video-container {
+  position: absolute;
+  inset: 0;
+  display: none;
+  align-items: center;
+  justify-content: center;
+  z-index: 1;
+}
+
+.bonus-video-container.has-video {
+  display: flex;
+}
+
+.bonus-video {
+  max-width: 80%;
+  max-height: 80%;
+  object-fit: contain;
+  border-radius: 8px;
+}
+
+.bonus-content {
+  text-align: center;
+  transform: scale(0.5);
+  opacity: 0;
+  transition: all 0.5s cubic-bezier(0.34, 1.56, 0.64, 1);
+  z-index: 2;
+  position: relative;
+}
+
+.bonus-content.animate-in {
+  transform: scale(1);
+  opacity: 1;
+}
+
+.bonus-content.animate-out {
+  transform: scale(1.5);
+  opacity: 0;
+}
+
+.bonus-icon {
+  font-size: 6em;
+  margin-bottom: 20px;
+  animation: bonus-bounce 0.6s ease infinite;
+}
+
+.bonus-title {
+  font-size: 3em;
+  color: var(--accent);
+  text-transform: uppercase;
+  letter-spacing: 4px;
+  margin-bottom: 10px;
+  text-shadow: 0 0 30px var(--accent);
+}
+
+.bonus-description {
+  font-size: 1.2em;
+  color: var(--text-muted);
+}
+
+@keyframes bonus-bounce {
+  0%,
+  100% {
+    transform: translateY(0) scale(1);
+  }
+  50% {
+    transform: translateY(-20px) scale(1.1);
+  }
+}
+
+/* Bonus animation variations */
+.bonus-overlay[data-animation="pulse"] .bonus-content {
+  animation: bonus-pulse 0.5s ease infinite;
+}
+
+.bonus-overlay[data-animation="wave"] .bonus-content {
+  animation: bonus-wave 1s ease infinite;
+}
+
+.bonus-overlay[data-animation="shake"] .bonus-content {
+  animation: bonus-shake 0.1s ease infinite;
+}
+
+.bonus-overlay[data-animation="disco"] {
+  background: linear-gradient(
+    45deg,
+    rgba(255, 0, 0, 0.3),
+    rgba(0, 255, 0, 0.3),
+    rgba(0, 0, 255, 0.3),
+    rgba(255, 255, 0, 0.3)
+  );
+  background-size: 400% 400%;
+  animation: disco-bg 2s ease infinite;
+}
+
+@keyframes bonus-pulse {
+  0%,
+  100% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.05);
+  }
+}
+
+@keyframes bonus-wave {
+  0%,
+  100% {
+    transform: rotate(-2deg);
+  }
+  50% {
+    transform: rotate(2deg);
+  }
+}
+
+@keyframes bonus-shake {
+  0%,
+  100% {
+    transform: translateX(0);
+  }
+  25% {
+    transform: translateX(-5px);
+  }
+  75% {
+    transform: translateX(5px);
+  }
+}
+
+@keyframes disco-bg {
+  0% {
+    background-position: 0% 50%;
+  }
+  50% {
+    background-position: 100% 50%;
+  }
+  100% {
+    background-position: 0% 50%;
+  }
+}
+
+/* Fireworks particles */
+.bonus-particles {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  pointer-events: none;
+}
+
+.particle {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: hsl(var(--hue), 100%, 60%);
+  animation: particle-explode 1s ease-out forwards;
+  animation-delay: var(--delay);
+}
+
+@keyframes particle-explode {
+  0% {
+    transform: translate(-50%, -50%) scale(0);
+    opacity: 1;
+  }
+  100% {
+    transform: translate(calc(-50% + var(--x)), calc(-50% + var(--y))) scale(1);
+    opacity: 0;
+  }
+}
+
+/* Bonus indicator in header */
+.bonus-indicator {
+  display: flex;
+  gap: 5px;
+  margin-left: 15px;
+}
+
+.bonus-badge {
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  background: rgba(50, 50, 70, 0.8);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.8em;
+  opacity: 0.4;
+  transition: all 0.3s ease;
+  cursor: help;
+}
+
+.bonus-badge.unlocked {
+  opacity: 1;
+  background: linear-gradient(135deg, #ffd700, #ff8c00);
+  animation: badge-glow 2s ease infinite;
+}
+
+@keyframes badge-glow {
+  0%,
+  100% {
+    box-shadow: 0 0 5px rgba(255, 215, 0, 0.5);
+  }
+  50% {
+    box-shadow: 0 0 20px rgba(255, 215, 0, 0.8);
+  }
+}
+
+/* ========================================
+   Phase 6: Horror Mode / Corruption Styles
+   ======================================== */
+
+/* Cursed sound icon */
+.sound-icon.cursed {
+  background: linear-gradient(135deg, #1a0a0a 0%, #3d0000 100%) !important;
+  border: 2px solid #ff0000;
+  animation: cursed-pulse 1s ease infinite;
+}
+
+.sound-icon.cursed::after {
+  content: "☠";
+  position: absolute;
+  font-size: 0.5em;
+  top: -5px;
+  right: -5px;
+}
+
+@keyframes cursed-pulse {
+  0%,
+  100% {
+    box-shadow: 0 0 10px rgba(255, 0, 0, 0.5);
+  }
+  50% {
+    box-shadow: 0 0 25px rgba(255, 0, 0, 0.8);
+  }
+}
+
+/* Corruption tiers - Visual Effects */
+.corruption-none {
+  /* No effects */
+}
+
+.corruption-low {
+  filter: hue-rotate(calc(var(--corruption-level, 0) * 30deg));
+  animation: corruption-wobble 2s ease infinite;
+}
+
+.corruption-medium {
+  filter: hue-rotate(calc(var(--corruption-level, 0) * 60deg))
+    saturate(calc(1 - var(--corruption-level, 0) * 0.3));
+  animation: corruption-glitch 0.5s steps(2) infinite;
+}
+
+.corruption-high {
+  filter: hue-rotate(calc(var(--corruption-level, 0) * 120deg)) saturate(0.5)
+    contrast(1.2);
+  animation: corruption-glitch-hard 0.2s steps(3) infinite;
+}
+
+.corruption-full {
+  filter: invert(0.9) hue-rotate(180deg) contrast(1.5) saturate(1.5);
+  animation: corruption-full 0.15s steps(2) infinite;
+}
+
+/* Corruption animations */
+@keyframes corruption-wobble {
+  0%,
+  100% {
+    transform: scale(1) rotate(0deg);
+  }
+  25% {
+    transform: scale(1.01) rotate(0.5deg);
+  }
+  75% {
+    transform: scale(0.99) rotate(-0.5deg);
+  }
+}
+
+@keyframes corruption-glitch {
+  0% {
+    transform: translate(0);
+    clip-path: inset(0 0 0 0);
+  }
+  25% {
+    transform: translate(-2px, 1px);
+    clip-path: inset(10% 0 60% 0);
+  }
+  50% {
+    transform: translate(2px, -1px);
+    clip-path: inset(40% 0 20% 0);
+  }
+  75% {
+    transform: translate(-1px, 2px);
+    clip-path: inset(70% 0 5% 0);
+  }
+  100% {
+    transform: translate(0);
+    clip-path: inset(0 0 0 0);
+  }
+}
+
+@keyframes corruption-glitch-hard {
+  0% {
+    transform: translate(0) skew(0);
+  }
+  20% {
+    transform: translate(-3px, 2px) skew(2deg);
+  }
+  40% {
+    transform: translate(3px, -2px) skew(-2deg);
+  }
+  60% {
+    transform: translate(-2px, -1px) skew(1deg);
+  }
+  80% {
+    transform: translate(2px, 1px) skew(-1deg);
+  }
+  100% {
+    transform: translate(0) skew(0);
+  }
+}
+
+@keyframes corruption-full {
+  0%,
+  100% {
+    transform: translate(0) scale(1);
+    filter: invert(0.9) hue-rotate(180deg) contrast(1.5);
+  }
+  50% {
+    transform: translate(2px, -2px) scale(1.02);
+    filter: invert(0.85) hue-rotate(200deg) contrast(1.8);
+  }
+}
+
+/* Slot corruption glow */
+.slot.corruption-low {
+  box-shadow: 0 0 20px rgba(128, 0, 128, 0.4);
+}
+
+.slot.corruption-medium {
+  box-shadow: 0 0 30px rgba(139, 0, 0, 0.5);
+  border-color: #8b0000 !important;
+}
+
+.slot.corruption-high {
+  box-shadow: 0 0 40px rgba(255, 0, 0, 0.6);
+  border-color: #ff0000 !important;
+}
+
+.slot.corruption-full {
+  box-shadow:
+    0 0 50px rgba(255, 0, 0, 0.8),
+    0 0 100px rgba(139, 0, 0, 0.4);
+  border-color: #ff0000 !important;
+}
+
+/* Horror mode body effects */
+body.horror-mode {
+  /* Animation removed to allow theme-defined backgrounds */
+}
+
+body.horror-mode::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  background: radial-gradient(
+    circle at center,
+    transparent 0%,
+    rgba(0, 0, 0, 0.3) 100%
+  );
+  pointer-events: none;
+  z-index: 9999;
+  animation: horror-vignette 3s ease infinite;
+}
+
+/* horror-bg keyframes removed */
+
+@keyframes horror-vignette {
+  0%,
+  100% {
+    opacity: 0.5;
+  }
+  50% {
+    opacity: 0.8;
+  }
+}
+
+/* Horror mode header */
+body.horror-mode .header h1 {
+  color: #ff0000;
+  text-shadow:
+    0 0 10px #ff0000,
+    0 0 20px #8b0000;
+  animation: horror-text 0.5s steps(2) infinite;
+}
+
+@keyframes horror-text {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.8;
+    transform: translateX(1px);
+  }
+}
+
+/* Cure button */
+.cure-btn {
+  padding: 10px 20px;
+  background: linear-gradient(135deg, #00ff00 0%, #008800 100%);
+  border: none;
+  border-radius: 8px;
+  color: white;
+  font-weight: bold;
+  cursor: pointer;
+  animation: cure-pulse 1s ease infinite;
+}
+
+body.horror-mode .cure-btn {
+  display: block;
+}
+
+@keyframes cure-pulse {
+  0%,
+  100% {
+    box-shadow: 0 0 10px rgba(0, 255, 0, 0.5);
+  }
+  50% {
+    box-shadow: 0 0 25px rgba(0, 255, 0, 0.8);
+  }
+}
+
+/* Horror mode palette */
+body.horror-mode .palette {
+  background: rgba(50, 0, 0, 0.5);
+  border: 1px solid rgba(255, 0, 0, 0.3);
+}

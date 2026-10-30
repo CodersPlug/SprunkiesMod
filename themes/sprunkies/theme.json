@@ -1,0 +1,175 @@
+{
+  "meta": {
+    "id": "sprunkies",
+    "name": "Sprunkies Básico",
+    "description": "13 instrumentos únicos, 5 slots. Sin horror.",
+    "author": "Leo",
+    "version": "1.2.0",
+    "bpm": 140,
+    "key": "E Minor",
+    "loopBars": 4
+  },
+
+  "colors": {
+    "primary": "#12121c",
+    "secondary": "#1c1c2e",
+    "accent": "#ff6bb5",
+    "text": "#f2eef5",
+    "textMuted": "#9a8fa3",
+    "beats": "#ff5c7a",
+    "effects": "#5eb0ff",
+    "melodies": "#5fd98a",
+    "voices": "#ffd166",
+    "bass": "#b388ff",
+    "cursed": "#ff6bb5"
+  },
+
+  "background": {
+    "type": "gradient",
+    "colors": ["#0e0e16", "#1a1528"],
+    "image": null
+  },
+
+  "sounds": {
+    "kick": {
+      "name": "Tambo",
+      "type": "beats",
+      "iconEmoji": "🥁",
+      "pattern": ["C1", null, null, null, "C1", null, "C1", null],
+      "subdivision": "8n",
+      "synth": { "type": "MembraneSynth", "options": { "pitchDecay": 0.05, "octaves": 5 } }
+    },
+    "snare": {
+      "name": "Palma",
+      "type": "beats",
+      "iconEmoji": "👏",
+      "pattern": [null, null, "C2", null, null, null, "C2", null],
+      "subdivision": "8n",
+      "synth": { "type": "NoiseSynth", "options": { "noise": { "type": "white" } } }
+    },
+    "hihat": {
+      "name": "Chispa",
+      "type": "effects",
+      "iconEmoji": "✨",
+      "pattern": ["C4", null, "C4", "C4", null, "C4", "C4", null],
+      "subdivision": "8n",
+      "synth": { "type": "MetalSynth", "options": { "frequency": 280, "harmonicity": 4.2 } }
+    },
+    "clap": {
+      "name": "Aplauso",
+      "type": "beats",
+      "iconEmoji": "🙌",
+      "pattern": [null, "C3", null, null, null, "C3", null, "C3"],
+      "subdivision": "8n",
+      "synth": { "type": "NoiseSynth", "options": { "noise": { "type": "pink" } } }
+    },
+    "cascabel": {
+      "name": "Cascabel",
+      "type": "effects",
+      "iconEmoji": "🔔",
+      "pattern": [null, null, "G5", null, null, null, "G5", "G5"],
+      "subdivision": "8n",
+      "synth": { "type": "MetalSynth", "options": { "frequency": 500, "harmonicity": 8 } }
+    },
+    "maraca": {
+      "name": "Maraca",
+      "type": "effects",
+      "iconEmoji": "🧉",
+      "pattern": ["C5", "C5", null, "C5", "C5", "C5", null, "C5"],
+      "subdivision": "8n",
+      "synth": { "type": "NoiseSynth", "options": { "noise": { "type": "brown" } } }
+    },
+    "tom": {
+      "name": "Tom",
+      "type": "beats",
+      "iconEmoji": "🫙",
+      "pattern": [null, null, null, "G1", null, null, null, "E1"],
+      "subdivision": "8n",
+      "synth": { "type": "MembraneSynth", "options": { "pitchDecay": 0.12, "octaves": 3 } }
+    },
+    "bass": {
+      "name": "Bajo",
+      "type": "bass",
+      "iconEmoji": "🎸",
+      "pattern": ["E2", null, null, "E2", "G2", "E2", null, "B1", null, "E2", null, "G2", "B1", "G2", "E2", null],
+      "subdivision": "16n",
+      "synth": { "type": "MonoSynth", "options": { "oscillator": { "type": "triangle" } } }
+    },
+    "sub": {
+      "name": "Sub",
+      "type": "bass",
+      "iconEmoji": "🔊",
+      "pattern": ["E1", null, null, null, "E1", null, "B0", null, "E1", null, null, null, "G1", null, "E1", null],
+      "subdivision": "16n",
+      "synth": { "type": "MonoSynth", "options": { "oscillator": { "type": "sine" } } }
+    },
+    "lead": {
+      "name": "Canto",
+      "type": "melodies",
+      "iconEmoji": "🎵",
+      "pattern": ["E4", "G4", null, "B4", "E4", "G4", "D5", "B4", "E5", "D5", null, "B4", "G4", "E4", "G4", "B4"],
+      "subdivision": "16n",
+      "synth": { "type": "MonoSynth", "options": { "oscillator": { "type": "sine" } } }
+    },
+    "silbido": {
+      "name": "Silbido",
+      "type": "melodies",
+      "iconEmoji": "😗",
+      "pattern": [null, "B5", null, "E5", null, "G5", null, "B5", null, "E5", null, null, "G5", null, "B5", null],
+      "subdivision": "16n",
+      "synth": { "type": "MonoSynth", "options": { "oscillator": { "type": "sine" } } }
+    },
+    "arpegio": {
+      "name": "Arpegio",
+      "type": "melodies",
+      "iconEmoji": "🎹",
+      "pattern": ["E4", "G4", "B4", "E5", "B4", "G4", "E4", "G4", "B4", "E5", "G5", "E5", "B4", "G4", "E4", null],
+      "subdivision": "16n",
+      "synth": { "type": "MonoSynth", "options": { "oscillator": { "type": "square" } } }
+    },
+    "brillo": {
+      "name": "Brillo",
+      "type": "voices",
+      "iconEmoji": "🌟",
+      "pattern": [null, "E5", null, "G5", null, "E5", "B4", null, null, "G5", null, "E5", "D5", null, "B4", null],
+      "subdivision": "16n",
+      "synth": { "type": "MonoSynth", "options": { "oscillator": { "type": "triangle" } } }
+    }
+  },
+
+  "bonuses": [
+    {
+      "id": "duo_dulce",
+      "title": "Dúo dulce",
+      "description": "Bajo y Canto juntos",
+      "requiredSounds": ["bass", "lead"],
+      "iconEmoji": "💕",
+      "animation": "wave",
+      "duration": 2000,
+      "repeatable": true
+    },
+    {
+      "id": "bajo_fuerte",
+      "title": "Bajo fuerte",
+      "description": "Tambo + Bajo",
+      "requiredSounds": ["kick", "bass"],
+      "iconEmoji": "🔊",
+      "animation": "shake",
+      "duration": 1000,
+      "repeatable": true
+    }
+  ],
+
+  "corruption": {
+    "enabled": false
+  },
+
+  "ui": {
+    "slotCount": 5,
+    "slotSize": 100,
+    "iconSize": 52,
+    "showBpmDisplay": true,
+    "showPhaseLabel": true,
+    "phaseLabel": "Sprunkies"
+  }
+}
