@@ -291,7 +291,7 @@ function updatePaletteAvailability() {
         const name = icon.dataset.soundName;
         const used = isSoundInUse(name);
         icon.classList.toggle('used', used);
-        icon.draggable = !used;
+        icon.setAttribute('draggable', 'false');
         icon.setAttribute('aria-disabled', used ? 'true' : 'false');
         if (used) {
             icon.title = 'Ya está en el escenario (solo una vez)';

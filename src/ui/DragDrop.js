@@ -1,11 +1,6 @@
 /**
- * DragDrop - HTML5 Drag and Drop for wrenchbox
- * Phase 2: Drag icons from palette to character slots
- *
- * Learning goals:
- * - HTML5 Drag and Drop API
- * - DataTransfer for passing data between drag events
- * - Visual feedback during drag operations
+ * DragDrop - Pointer-based drag for wrenchbox
+ * Works on desktop mouse AND iPad/iPhone touch (HTML5 DnD does not).
  */
 
 class DragDrop {
@@ -13,161 +8,270 @@ class DragDrop {
         this.onDrop = options.onDrop || (() => {});
         this.onRemove = options.onRemove || (() => {});
 
-        // Track current drag state
         this.draggedSound = null;
-        this.dragSource = null; // 'palette' or 'slot'
+        this.dragSource = null; // 'palette' | 'slot'
         this.dragSourceSlotId = null;
+        this.dragSourceEl = null;
+
+        this.active = false;
+        this.moved = false;
+        this.pointerId = null;
+        this.startX = 0;
+        this.startY = 0;
+        this.ghost = null;
+        this.suppressClick = false;
+
+        this.DRAG_THRESHOLD = 8; // px before a press becomes a drag
     }
 
-    /**
-     * Initialize drag-drop on palette icons and slots
-     */
     init() {
         this.setupPaletteIcons();
         this.setupSlots();
-        this.setupRemoveZone();
-        console.log('[DragDrop] Initialized');
+        this.bindGlobalPointers();
+
+        // Block the synthetic click after a real drag (esp. slot tap-to-remove)
+        document.addEventListener(
+            'click',
+            (e) => {
+                if (!this.suppressClick) return;
+                e.preventDefault();
+                e.stopPropagation();
+                this.suppressClick = false;
+            },
+            true
+        );
+
+        console.log('[DragDrop] Initialized (pointer / touch)');
     }
 
-    /**
-     * Make palette icons draggable
-     */
     setupPaletteIcons() {
-        const icons = document.querySelectorAll('.sound-icon');
-
-        icons.forEach(icon => {
-            icon.draggable = true;
-
-            icon.addEventListener('dragstart', (e) => {
-                if (icon.classList.contains('used') || icon.draggable === false) {
-                    e.preventDefault();
-                    return;
-                }
-
-                this.draggedSound = icon.dataset.soundName;
-                this.dragSource = 'palette';
-                this.dragSourceSlotId = null;
-
-                e.dataTransfer.setData('text/plain', this.draggedSound);
-                e.dataTransfer.effectAllowed = 'copy';
-
-                icon.classList.add('dragging');
-                document.body.classList.add('is-dragging');
-            });
-
-            icon.addEventListener('dragend', () => {
-                icon.classList.remove('dragging');
-                document.body.classList.remove('is-dragging');
-                this.clearDragState();
+        document.querySelectorAll('.sound-icon').forEach((icon) => {
+            icon.setAttribute('draggable', 'false');
+            icon.classList.add('touch-draggable');
+            icon.addEventListener('pointerdown', (e) => {
+                if (icon.classList.contains('used')) return;
+                if (e.button != null && e.button !== 0) return;
+                this.beginDrag(e, {
+                    soundName: icon.dataset.soundName,
+                    source: 'palette',
+                    sourceSlotId: null,
+                    sourceEl: icon,
+                    ghostContent: icon.innerHTML,
+                });
             });
         });
     }
 
-    /**
-     * Make slots accept drops and be draggable when filled
-     */
     setupSlots() {
-        const slots = document.querySelectorAll('.slot');
+        document.querySelectorAll('.slot').forEach((slot) => {
+            slot.setAttribute('draggable', 'false');
+            slot.addEventListener('pointerdown', (e) => {
+                // Don't steal mute/solo taps
+                if (e.target.closest('.slot-btn')) return;
+                if (e.button != null && e.button !== 0) return;
 
-        slots.forEach(slot => {
-            // Allow dropping on slots
-            slot.addEventListener('dragover', (e) => {
-                e.preventDefault();
-                e.dataTransfer.dropEffect = this.dragSource === 'palette' ? 'copy' : 'move';
-                slot.classList.add('drag-over');
-            });
-
-            slot.addEventListener('dragleave', () => {
-                slot.classList.remove('drag-over');
-            });
-
-            slot.addEventListener('drop', (e) => {
-                e.preventDefault();
-                slot.classList.remove('drag-over');
-
-                const slotId = parseInt(slot.dataset.slotId);
-                const soundName = e.dataTransfer.getData('text/plain');
-
-                if (soundName) {
-                    // If dragging from another slot, remove from source first
-                    if (this.dragSource === 'slot' && this.dragSourceSlotId !== null) {
-                        if (this.dragSourceSlotId !== slotId) {
-                            this.onRemove(this.dragSourceSlotId);
-                        }
-                    }
-                    this.onDrop(slotId, soundName);
-                }
-
-                this.clearDragState();
-            });
-
-            // Make filled slots draggable (for moving/removing)
-            slot.addEventListener('dragstart', (e) => {
                 const soundName = slot.dataset.soundName;
-                if (!soundName) {
-                    e.preventDefault();
-                    return;
-                }
+                if (!soundName) return;
 
-                this.draggedSound = soundName;
-                this.dragSource = 'slot';
-                this.dragSourceSlotId = parseInt(slot.dataset.slotId);
-
-                e.dataTransfer.setData('text/plain', soundName);
-                e.dataTransfer.effectAllowed = 'move';
-
-                slot.classList.add('dragging');
-                document.body.classList.add('is-dragging');
-            });
-
-            slot.addEventListener('dragend', () => {
-                slot.classList.remove('dragging');
-                document.body.classList.remove('is-dragging');
-                this.clearDragState();
+                const iconEl = slot.querySelector('.slot-icon');
+                this.beginDrag(e, {
+                    soundName,
+                    source: 'slot',
+                    sourceSlotId: parseInt(slot.dataset.slotId, 10),
+                    sourceEl: slot,
+                    ghostContent: iconEl ? iconEl.innerHTML : '🎵',
+                });
             });
         });
     }
 
-    /**
-     * Set up remove zone (palette acts as remove zone when dragging from slot)
-     */
-    setupRemoveZone() {
-        const palette = document.querySelector('.palette');
+    bindGlobalPointers() {
+        document.addEventListener('pointermove', (e) => this.onPointerMove(e), {
+            passive: false,
+        });
+        document.addEventListener('pointerup', (e) => this.onPointerUp(e));
+        document.addEventListener('pointercancel', (e) => this.onPointerUp(e));
+    }
 
-        palette.addEventListener('dragover', (e) => {
-            if (this.dragSource === 'slot') {
-                e.preventDefault();
-                e.dataTransfer.dropEffect = 'move';
-                palette.classList.add('remove-zone-active');
+    beginDrag(e, { soundName, source, sourceSlotId, sourceEl, ghostContent }) {
+        if (!soundName || this.active) return;
+
+        this.active = true;
+        this.moved = false;
+        this.pointerId = e.pointerId;
+        this.startX = e.clientX;
+        this.startY = e.clientY;
+        this.draggedSound = soundName;
+        this.dragSource = source;
+        this.dragSourceSlotId = sourceSlotId;
+        this.dragSourceEl = sourceEl;
+        this._ghostContent = ghostContent;
+
+        try {
+            sourceEl.setPointerCapture(e.pointerId);
+        } catch (_) {
+            /* ignore */
+        }
+
+        // Don't preventDefault yet — wait for threshold so taps still work
+    }
+
+    onPointerMove(e) {
+        if (!this.active || e.pointerId !== this.pointerId) return;
+
+        const dx = e.clientX - this.startX;
+        const dy = e.clientY - this.startY;
+
+        if (!this.moved) {
+            if (Math.hypot(dx, dy) < this.DRAG_THRESHOLD) return;
+            this.moved = true;
+            this.startGhost(e.clientX, e.clientY);
+            if (this.dragSourceEl) {
+                this.dragSourceEl.classList.add('dragging');
             }
-        });
+            document.body.classList.add('is-dragging');
+        }
 
-        palette.addEventListener('dragleave', () => {
-            palette.classList.remove('remove-zone-active');
-        });
+        e.preventDefault();
+        this.moveGhost(e.clientX, e.clientY);
+        this.updateHoverTargets(e.clientX, e.clientY);
+    }
 
-        palette.addEventListener('drop', (e) => {
-            palette.classList.remove('remove-zone-active');
+    onPointerUp(e) {
+        if (!this.active || e.pointerId !== this.pointerId) return;
 
-            if (this.dragSource === 'slot' && this.dragSourceSlotId !== null) {
-                e.preventDefault();
+        const x = e.clientX;
+        const y = e.clientY;
+        const didDrag = this.moved;
+
+        if (didDrag) {
+            e.preventDefault();
+            this.suppressClick = true;
+            this.commitDrop(x, y);
+        }
+
+        this.teardownDrag();
+    }
+
+    startGhost(x, y) {
+        const ghost = document.createElement('div');
+        ghost.className = 'drag-ghost';
+        ghost.innerHTML = this._ghostContent || '';
+        document.body.appendChild(ghost);
+        this.ghost = ghost;
+        this.moveGhost(x, y);
+    }
+
+    moveGhost(x, y) {
+        if (!this.ghost) return;
+        this.ghost.style.transform = `translate(${x}px, ${y}px) translate(-50%, -50%)`;
+    }
+
+    updateHoverTargets(x, y) {
+        document
+            .querySelectorAll('.slot.drag-over, .palette.remove-zone-active')
+            .forEach((el) => {
+                el.classList.remove('drag-over', 'remove-zone-active');
+            });
+
+        const target = this.hitTest(x, y);
+        if (!target) return;
+
+        if (target.kind === 'slot') {
+            target.el.classList.add('drag-over');
+        } else if (target.kind === 'palette' && this.dragSource === 'slot') {
+            target.el.classList.add('remove-zone-active');
+        }
+    }
+
+    hitTest(x, y) {
+        // Ghost blocks hit-testing — hide briefly
+        const ghost = this.ghost;
+        if (ghost) ghost.style.visibility = 'hidden';
+        const el = document.elementFromPoint(x, y);
+        if (ghost) ghost.style.visibility = 'visible';
+        if (!el) return null;
+
+        const slot = el.closest('.slot');
+        if (slot) {
+            return {
+                kind: 'slot',
+                el: slot,
+                slotId: parseInt(slot.dataset.slotId, 10),
+            };
+        }
+
+        const palette = el.closest('.palette');
+        if (palette) {
+            return { kind: 'palette', el: palette };
+        }
+
+        return null;
+    }
+
+    commitDrop(x, y) {
+        const target = this.hitTest(x, y);
+        if (!target || !this.draggedSound) return;
+
+        if (target.kind === 'slot') {
+            const slotId = target.slotId;
+            if (
+                this.dragSource === 'slot' &&
+                this.dragSourceSlotId !== null &&
+                this.dragSourceSlotId !== slotId
+            ) {
                 this.onRemove(this.dragSourceSlotId);
             }
+            // Same slot: no-op re-drop
+            if (
+                this.dragSource === 'slot' &&
+                this.dragSourceSlotId === slotId
+            ) {
+                return;
+            }
+            this.onDrop(slotId, this.draggedSound);
+            return;
+        }
 
-            this.clearDragState();
-        });
+        if (target.kind === 'palette' && this.dragSource === 'slot') {
+            this.onRemove(this.dragSourceSlotId);
+        }
     }
 
-    /**
-     * Update slot draggable state (call after slot content changes)
-     */
+    teardownDrag() {
+        if (this.dragSourceEl) {
+            this.dragSourceEl.classList.remove('dragging');
+            try {
+                this.dragSourceEl.releasePointerCapture(this.pointerId);
+            } catch (_) {
+                /* ignore */
+            }
+        }
+
+        document
+            .querySelectorAll('.slot.drag-over, .palette.remove-zone-active')
+            .forEach((el) => {
+                el.classList.remove('drag-over', 'remove-zone-active');
+            });
+        document.body.classList.remove('is-dragging');
+
+        if (this.ghost) {
+            this.ghost.remove();
+            this.ghost = null;
+        }
+
+        this.active = false;
+        this.moved = false;
+        this.pointerId = null;
+        this.dragSourceEl = null;
+        this.clearDragState();
+    }
+
     updateSlotDraggable(slotElement, hasSoundAssigned) {
-        slotElement.draggable = hasSoundAssigned;
+        slotElement.classList.toggle('touch-draggable', !!hasSoundAssigned);
+        slotElement.setAttribute('draggable', 'false');
     }
 
-    /**
-     * Clear drag state
-     */
     clearDragState() {
         this.draggedSound = null;
         this.dragSource = null;

@@ -308,9 +308,13 @@ body {
   align-items: center;
   justify-content: center;
   font-size: 1.8em;
-  cursor: pointer;
+  cursor: grab;
   transition: all 0.2s ease;
   border: 2px solid transparent;
+  touch-action: none;
+  -webkit-user-select: none;
+  user-select: none;
+  -webkit-touch-callout: none;
 }
 
 .sound-icon:hover {
@@ -454,22 +458,23 @@ body {
   box-shadow: 0 0 40px rgba(255, 221, 68, 0.7) !important;
 }
 
-/* Drag states */
-.sound-icon.dragging {
-  opacity: 0.5;
-  transform: scale(0.9);
+/* Drag states (pointer / touch — works on iPad) */
+.sound-icon.dragging,
+.slot.dragging {
+  opacity: 0.45;
 }
 
-.sound-icon[draggable="true"] {
-  cursor: grab;
-}
-
-.sound-icon[draggable="true"]:active {
+.sound-icon:active,
+.slot.touch-draggable:active {
   cursor: grabbing;
 }
 
-.slot.dragging {
-  opacity: 0.5;
+.slot.touch-draggable {
+  cursor: grab;
+  touch-action: none;
+  -webkit-user-select: none;
+  user-select: none;
+  -webkit-touch-callout: none;
 }
 
 .slot.drag-over {
@@ -479,7 +484,40 @@ body {
   transform: scale(1.1);
 }
 
+/* Floating ghost under finger / cursor */
+.drag-ghost {
+  position: fixed;
+  left: 0;
+  top: 0;
+  width: var(--icon-size);
+  height: var(--icon-size);
+  z-index: 10000;
+  pointer-events: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.8em;
+  border-radius: 12px;
+  background: rgba(20, 20, 30, 0.92);
+  border: 2px solid var(--accent);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.45);
+  will-change: transform;
+}
+
+.drag-ghost img {
+  width: 80%;
+  height: 80%;
+  object-fit: contain;
+  pointer-events: none;
+}
+
 /* Body state during drag */
+body.is-dragging {
+  cursor: grabbing;
+  touch-action: none;
+  overflow: hidden;
+}
+
 body.is-dragging .slot.empty {
   border-color: var(--accent);
   animation: pulse-drop 0.8s infinite;
@@ -504,15 +542,6 @@ body.is-dragging .slot.empty {
 /* Slot label positioning adjustment for controls */
 .slot:not(.empty) .slot-label {
   bottom: -55px;
-}
-
-/* Draggable slots */
-.slot[draggable="true"] {
-  cursor: grab;
-}
-
-.slot[draggable="true"]:active {
-  cursor: grabbing;
 }
 
 /* ========================================
